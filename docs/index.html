@@ -23,17 +23,48 @@
     </button>
   </header>
 
-  <section id="settings" class="settings" hidden aria-label="Backend settings">
-    <form id="settings-form" class="settings-row">
-      <label for="api-url">Backend URL</label>
-      <input id="api-url" type="url" inputmode="url" spellcheck="false" autocomplete="off" required>
-      <button type="submit" class="btn">Connect</button>
-    </form>
-    <p class="hint">This page is static. Answers come from <code>serve.py</code> in your project.
-      Start it with <code>python serve.py</code> (or <code>PORT=5050 python serve.py</code> if macOS AirPlay already holds port 5000),
-      then point this at it. Safari blocks secure pages from calling <code>http://localhost</code>; use Chrome, Edge or Firefox,
-      or open this page from <code>python -m http.server</code> in the <code>docs/</code> folder.</p>
+  <section id="settings" class="settings" hidden aria-label="Settings">
+    <fieldset class="mode-picker">
+      <legend>Answer from</legend>
+      <label class="mode">
+        <input type="radio" name="mode" value="static">
+        <span class="mode-name">This page</span>
+        <span class="mode-meta">Search runs in your browser. No server needed.</span>
+      </label>
+      <label class="mode">
+        <input type="radio" name="mode" value="backend">
+        <span class="mode-name">serve.py backend</span>
+        <span class="mode-meta">Your project's Python server does everything.</span>
+      </label>
+    </fieldset>
+
+    <div id="static-settings" hidden>
+      <form id="key-form" class="settings-row">
+        <label for="gemini-key">Gemini API key</label>
+        <input id="gemini-key" type="password" spellcheck="false" autocomplete="off">
+        <button type="submit" class="btn">Save key</button>
+        <button type="button" id="forget-key" class="btn">Forget key</button>
+      </form>
+      <p id="key-status" class="hint" role="status"></p>
+      <p class="hint">Optional. The key is stored only in this browser and sent only to Google's Gemini API
+        (<code>generativelanguage.googleapis.com</code>), never to this site. Without one, you get the closest passages
+        instead of a written answer. The first question downloads the embedding model (about 90 MB), which your browser then caches.</p>
+    </div>
+
+    <div id="backend-settings" hidden>
+      <form id="settings-form" class="settings-row">
+        <label for="api-url">Backend URL</label>
+        <input id="api-url" type="url" inputmode="url" spellcheck="false" autocomplete="off" required>
+        <button type="submit" class="btn">Connect</button>
+      </form>
+      <p class="hint">Answers come from <code>serve.py</code> in your project.
+        Start it with <code>python serve.py</code> (or <code>PORT=5050 python serve.py</code> if macOS AirPlay already holds port 5000),
+        then point this at it. Safari blocks secure pages from calling <code>http://localhost</code>; use Chrome, Edge or Firefox,
+        or open this page from <code>python -m http.server</code> in the <code>docs/</code> folder.</p>
+    </div>
+
     <p id="health-detail" class="hint" role="status"></p>
+    <button type="button" id="use-static" class="btn" hidden>Use this page instead (no server)</button>
   </section>
 
   <main class="layout">
@@ -57,7 +88,7 @@
         <ol>
           <li><strong>Retrieve.</strong> Your question is embedded and compared with every chunk of the chosen corpus.</li>
           <li><strong>Gate.</strong> If even the closest chunk is further away than the cutoff, the system refuses rather than guess.</li>
-          <li><strong>Answer.</strong> Otherwise the model answers using only those chunks and names its sources.</li>
+          <li><strong>Answer.</strong> Otherwise the model answers using only those chunks and names its sources. On this page without a Gemini key, you get the closest passages instead.</li>
         </ol>
         <p>Every answer below shows all three steps, so you can see why it said what it said.</p>
       </div>
@@ -73,6 +104,7 @@
           <span class="corpus-tag"></span>
         </div>
         <div class="answer"></div>
+        <p class="answer-note"></p>
         <div class="gate">
           <div class="gate-label">
             <span>Relevance gate</span>
