@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Unofficial Guide</title>
+  <meta name="description" content="Ask questions of the Unofficial Guide RAG system and see the sources, relevance gate and retrieved chunks behind every answer.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232f5d50%22/%3E%3Ctext x=%2216%22 y=%2221%22 font-family=%22sans-serif%22 font-size=%2213%22 font-weight=%22700%22 fill=%22white%22 text-anchor=%22middle%22%3EUG%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">UG</span>
+      <div>
+        <h1>The Unofficial Guide</h1>
+        <p class="tagline">Answers from student-written documents, with the evidence shown.</p>
+      </div>
+    </div>
+    <button id="status" class="status" type="button" aria-controls="settings" aria-expanded="false">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="status-text">Connecting…</span>
+    </button>
+  </header>
+
+  <section id="settings" class="settings" hidden aria-label="Backend settings">
+    <form id="settings-form" class="settings-row">
+      <label for="api-url">Backend URL</label>
+      <input id="api-url" type="url" inputmode="url" spellcheck="false" autocomplete="off" required>
+      <button type="submit" class="btn">Connect</button>
+    </form>
+    <p class="hint">This page is static. Answers come from <code>serve.py</code> in your project.
+      Start it with <code>python serve.py</code> (or <code>PORT=5050 python serve.py</code> if macOS AirPlay already holds port 5000),
+      then point this at it. Safari blocks secure pages from calling <code>http://localhost</code>; use Chrome, Edge or Firefox,
+      or open this page from <code>python -m http.server</code> in the <code>docs/</code> folder.</p>
+    <p id="health-detail" class="hint" role="status"></p>
+  </section>
+
+  <main class="layout">
+    <section class="ask-panel" aria-label="Ask a question">
+      <fieldset class="corpus-picker">
+        <legend>Corpus</legend>
+        <div id="corpora" class="corpora" role="radiogroup" aria-label="Corpus"></div>
+      </fieldset>
+
+      <form id="ask-form" class="ask-form">
+        <label for="question" class="visually-hidden">Your question</label>
+        <textarea id="question" rows="2" placeholder="Ask about housing, dining, courses, deadlines…" required></textarea>
+        <button id="ask-btn" type="submit" class="btn btn-primary">Ask</button>
+      </form>
+      <div id="examples" class="examples" aria-label="Example questions"></div>
+    </section>
+
+    <section id="thread" class="thread" aria-live="polite" aria-label="Answers">
+      <div id="empty" class="empty">
+        <h2>How this works</h2>
+        <ol>
+          <li><strong>Retrieve.</strong> Your question is embedded and compared with every chunk of the chosen corpus.</li>
+          <li><strong>Gate.</strong> If even the closest chunk is further away than the cutoff, the system refuses rather than guess.</li>
+          <li><strong>Answer.</strong> Otherwise the model answers using only those chunks and names its sources.</li>
+        </ol>
+        <p>Every answer below shows all three steps, so you can see why it said what it said.</p>
+      </div>
+    </section>
+  </main>
+
+  <template id="turn-template">
+    <article class="turn">
+      <p class="turn-question"></p>
+      <div class="card">
+        <div class="card-head">
+          <span class="badge"></span>
+          <span class="corpus-tag"></span>
+        </div>
+        <div class="answer"></div>
+        <div class="gate">
+          <div class="gate-label">
+            <span>Relevance gate</span>
+            <span class="gate-numbers"></span>
+          </div>
+          <div class="gate-track" aria-hidden="true">
+            <div class="gate-pass"></div>
+            <div class="gate-cutoff"></div>
+            <div class="gate-marker"></div>
+          </div>
+          <p class="gate-scale"><span>0 · identical</span><span>1 · unrelated</span></p>
+        </div>
+        <div class="sources"></div>
+        <details class="chunks">
+          <summary></summary>
+          <ol class="chunk-list"></ol>
+        </details>
+      </div>
+    </article>
+  </template>
+
+  <footer class="footer">
+    <p>Lower distance is closer. Cutoff and top-k come from <code>config.py</code>; chunks from <code>chunker.py::split_documents</code>.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

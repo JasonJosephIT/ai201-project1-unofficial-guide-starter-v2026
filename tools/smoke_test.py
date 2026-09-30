@@ -75,7 +75,7 @@ def main():
         docs = load_documents(corpus)
         check(f"  loads documents", len(docs) > 0, f"{len(docs)} documents")
 
-        chunks = split_documents(docs)
+        chunks = split_documents(docs, corpus=corpus)
         check(f"  chunks them", len(chunks) > 0, f"{len(chunks)} chunks")
         check(
             f"  chunks carry a source and a producing function",
