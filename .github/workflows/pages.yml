@@ -1,0 +1,83 @@
+# Build the static index and publish docs/ to GitHub Pages.
+#
+# Pages serves files only, so the Python pipeline runs here instead: ingest,
+# chunk and embed every corpus, then write the chunks and their vectors to
+# docs/data/ (tools/export_static_index.py). The browser does retrieval, the
+# gate and — with a key the visitor pastes in — generation.
+#
+# No secrets: this build never calls Gemini. Don't add GEMINI_API_KEY here;
+# everything this job uploads is public.
+#
+# One-time setup: Settings → Pages → Build and deployment → Source: GitHub Actions.
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "corpora/**"
+      - "ingest.py"
+      - "chunker.py"
+      - "config.py"
+      - "corpus_info.py"
+      - "generate.py"
+      - "gate.py"
+      - "store.py"
+      - "requirements.txt"
+      - "docs/**"
+      - "tools/export_static_index.py"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      - name: Read the embedding model name from config.py
+        id: model
+        run: echo "name=$(python -c 'import config; print(config.EMBEDDING_MODEL)')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the embedding model (~80 MB)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/chroma/onnx_models
+          key: chroma-onnx-${{ steps.model.outputs.name }}
+
+      - name: Export the static index
+        run: python tools/export_static_index.py
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
