@@ -23,17 +23,68 @@ load_dotenv(ROOT / ".env")
 CORPUS = os.getenv("AI201_CORPUS", "campus_life")
 
 
+# ─── Ingestion ───────────────────────────────────────────────────────────────
+# ingest.clean_text always strips web chrome (nav, ads, cookie banners, footers,
+# HTML). This switch also drops sentences where a writer only introduces
+# themselves ("Second-year here.", "I lived here my sophomore year.").
+# Re-run `python app.py index` after changing it.
+
+STRIP_AUTHOR_FRAMING = True
+
+
 # ─── Chunking (Milestone 3) ──────────────────────────────────────────────────
 # These are deliberately plain, generic numbers. Milestone 3 is where you
 # replace them with numbers that fit the documents you actually read.
 
+# The generic numbers below are what `fallback_split` uses, and what any
+# corpus without an entry in CORPUS_SETTINGS gets (e.g. one you bring yourself).
+
 CHUNK_SIZE = 800        # characters per chunk
 CHUNK_OVERLAP = 120     # characters shared between neighbouring chunks
+
+# Per-corpus chunking and retrieval. Each corpus has a different shape (see
+# corpora/README.md), so each gets its own strategy and numbers:
+#
+#   strategy   how `chunker.split_documents` finds the natural units
+#                "paragraphs" — blank-line paragraphs, headed by the post title
+#                "replies"    — one chunk per thread reply, headed by the question
+#                "sections"   — one chunk per `##` section, headed by guide + section
+#                "fixed"      — the original fixed-size character windows
+#   max_chars  a natural unit longer than this is cut into sentence windows
+#   min_chars  paragraphs shorter than this are glued onto a neighbour
+#   overlap    characters (whole sentences) repeated between the windows of a
+#              unit that had to be cut — a unit that fits is never overlapped
+#   top_k      how many chunks retrieval pulls back per question
+CORPUS_SETTINGS = {
+    # Short posts; overview posts pack several topics into separate paragraphs.
+    # Paragraphs never exceed max_chars here, so there is nothing to overlap.
+    "campus_life": {
+        "strategy": "paragraphs", "max_chars": 450, "min_chars": 80,
+        "overlap": 0, "top_k": 5,
+    },
+    # Each reply is one person's answer (71–198 chars). Answers are spread
+    # across replies, so pull back more of them.
+    "advice_threads": {
+        "strategy": "replies", "max_chars": 450, "min_chars": 0,
+        "overlap": 0, "top_k": 6,
+    },
+    # Long guides with ~7 `##` sections each; one section usually holds the
+    # answer, so fewer, larger chunks. Over-long sections get split with overlap.
+    "city_guides": {
+        "strategy": "sections", "max_chars": 600, "min_chars": 0,
+        "overlap": 150, "top_k": 4,
+    },
+    # Mostly one-paragraph posts, plus four long guides with plain-text headings.
+    "practice": {
+        "strategy": "paragraphs", "max_chars": 600, "min_chars": 80,
+        "overlap": 100, "top_k": 5,
+    },
+}
 
 
 # ─── Retrieval (Milestone 4) ─────────────────────────────────────────────────
 
-TOP_K = 5               # how many chunks to pull back per question
+TOP_K = 5               # default chunks per question, for corpora not listed above
 
 # The relevance gate. If the best chunk is further away than this, the system
 # refuses to answer instead of handing the model thin material.
@@ -108,3 +159,24 @@ def collection_name(name: str | None = None, variant: str = "default") -> str:
     if not cleaned[-1].isalnum():
         cleaned = f"{cleaned}0"
     return cleaned[:63].rstrip("_-") or "collection"
+
+
+def chunk_settings(name: str | None = None) -> dict:
+    """Chunking and retrieval settings for a corpus.
+
+    Corpora without an entry in CORPUS_SETTINGS get the original fixed-size
+    behaviour, so a corpus you bring yourself still works unchanged.
+    """
+    default = {
+        "strategy": "fixed",
+        "max_chars": CHUNK_SIZE,
+        "min_chars": 0,
+        "overlap": CHUNK_OVERLAP,
+        "top_k": TOP_K,
+    }
+    return {**default, **CORPUS_SETTINGS.get(name or CORPUS, {})}
+
+
+def top_k_for(name: str | None = None) -> int:
+    """How many chunks retrieval pulls back for a corpus."""
+    return chunk_settings(name)["top_k"]

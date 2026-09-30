@@ -189,7 +189,7 @@ def search(
 
     Returns them nearest-first, each with its distance.
     """
-    top_k = top_k or config.TOP_K
+    top_k = top_k or config.top_k_for(corpus)
     name = config.collection_name(corpus, variant)
 
     try:

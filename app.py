@@ -43,7 +43,7 @@ def cmd_index(args):
     documents = load_documents(corpus)
     print(f"  loaded   {describe_docs(documents)}")
 
-    chunks = split_documents(documents)
+    chunks = split_documents(documents, corpus=corpus)
     print(f"  chunked  {describe_chunks(chunks)}")
 
     print(f"  embedding {len(chunks)} chunks (first run downloads the model)...")
@@ -103,7 +103,8 @@ def cmd_chunks(args):
     from ingest import load_documents
     from chunker import split_documents
 
-    chunks = split_documents(load_documents(args.corpus or config.CORPUS))
+    corpus = args.corpus or config.CORPUS
+    chunks = split_documents(load_documents(corpus), corpus=corpus)
 
     if args.from_doc:
         sample = _chunks_from_doc(chunks, args.from_doc)
@@ -149,10 +150,11 @@ def cmd_retrieve(args):
     from store import search
     import gate
 
+    corpus = args.corpus or config.CORPUS
     results = search(
         args.question,
-        top_k=args.top_k or config.TOP_K,
-        corpus=args.corpus or config.CORPUS,
+        top_k=args.top_k or config.top_k_for(corpus),
+        corpus=corpus,
         variant=args.variant,
     )
 
@@ -203,10 +205,11 @@ def ask_pipeline(
     import gate
     from generate import answer_from_chunks, build_prompt
 
+    corpus = corpus or config.CORPUS
     results = search(
         question,
-        top_k=top_k or config.TOP_K,
-        corpus=corpus or config.CORPUS,
+        top_k=top_k or config.top_k_for(corpus),
+        corpus=corpus,
         variant=variant,
     )
     decision = gate.check(results, threshold=threshold)
@@ -220,6 +223,18 @@ def ask_pipeline(
         "threshold": decision.threshold,
         "sources": [],
         "prompt": None,
+        "top_k": top_k or config.top_k_for(corpus),
+        # What retrieval handed over, nearest first — also on a refusal, so you
+        # can see what was too far away to answer from.
+        "chunks": [
+            {
+                "label": r.label,
+                "source": r.source,
+                "distance": r.distance,
+                "text": r.text,
+            }
+            for r in results
+        ],
     }
 
     if not decision.passed:

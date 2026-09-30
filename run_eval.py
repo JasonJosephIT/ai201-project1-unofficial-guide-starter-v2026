@@ -79,7 +79,7 @@ def main():
     args = parser.parse_args()
 
     corpus = args.corpus or config.CORPUS
-    top_k = args.top_k or config.TOP_K
+    top_k = args.top_k or config.top_k_for(corpus)
     threshold = config.THRESHOLD if args.threshold is None else args.threshold
 
     items = qs.answered()
