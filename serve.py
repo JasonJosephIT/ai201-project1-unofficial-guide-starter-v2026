@@ -116,7 +116,7 @@ def health():
             "threshold": config.THRESHOLD,
             # Every corpus on disk, so a front end can offer a choice. Only the
             # ones with an index can answer; the rest need
-            # `python app.py --corpus NAME index` first.
+            # `python app.py index --corpus NAME` first.
             "corpora": [
                 {
                     "name": name,
