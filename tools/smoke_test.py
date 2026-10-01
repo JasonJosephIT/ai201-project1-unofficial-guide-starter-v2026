@@ -162,6 +162,27 @@ def main():
         check("  session budget guard stops runaway loops", True)
     generate._session_calls = 0
 
+    # `python app.py chat`: one scripted session, output captured.
+    import contextlib
+    import io
+
+    import chat
+
+    session = chat.Session("campus_life")
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        for line in ["is the housing lottery random?", "/chunks", "/chunking",
+                     "/doc admin_housing_lottery", "/search what is the capital of Mongolia?"]:
+            session.handle(line)
+        still_running = session.handle("/quit") is False
+    text = out.getvalue()
+    check("  chat answers with sources, chunking and chunks",
+          all(s in text for s in ["Source documents", "Chunking strategy: paragraphs",
+                                  "Retrieved chunks", "chunker.py::split_documents"]))
+    check("  chat reviews chunking (/chunking, /doc)",
+          "documents → " in text and "admin_housing_lottery.txt · campus_life" in text)
+    check("  chat /quit ends the session", still_running)
+
     print("\n" + "-" * 60)
     if failures:
         print(f"{len(failures)} FAILED: {', '.join(failures)}")
