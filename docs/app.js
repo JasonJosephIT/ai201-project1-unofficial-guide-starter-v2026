@@ -501,6 +501,7 @@
       best_distance: best,
       threshold,
       top_k: index.top_k,
+      chunking: index.chunking,
       sources: [],
       chunks,
     };
@@ -545,7 +546,7 @@
     node.querySelector(".answer-note").hidden = true;
     node.querySelector(".gate").hidden = true;
     node.querySelector(".sources").hidden = true;
-    node.querySelector(".chunks").hidden = true;
+    node.querySelector(".details").hidden = true;
     els.empty.hidden = true;
     els.thread.prepend(node);
     return node;
@@ -570,7 +571,7 @@
 
     renderGate(node.querySelector(".gate"), data);
     renderSources(node.querySelector(".sources"), data.sources || [], refused);
-    renderChunks(node.querySelector(".chunks"), data);
+    renderDetails(node.querySelector(".details"), data);
   }
 
   // The model often answers in light markdown. Render **bold**, *italic*,
@@ -650,12 +651,29 @@
     }
   }
 
-  function renderChunks(details, data) {
+  // One dropdown per answer: which documents the chunks came from, how the
+  // corpus was chunked (config.CORPUS_SETTINGS, via corpus_info.chunking),
+  // and every retrieved chunk with its distance.
+  function renderDetails(details, data) {
     const chunks = data.chunks || [];
     if (!chunks.length) { details.hidden = true; return; }
     details.hidden = false;
     const cutoff = Number(data.threshold);
+    const within = (d) => (Number.isFinite(cutoff) ? d < cutoff : true);
+    const docs = new Map();
+    for (const c of chunks) {
+      const doc = docs.get(c.source) || { count: 0, best: Infinity };
+      doc.count += 1;
+      doc.best = Math.min(doc.best, Number(c.distance));
+      docs.set(c.source, doc);
+    }
     details.querySelector("summary").textContent =
+      `Sources, chunking and chunks (${docs.size} document${docs.size === 1 ? "" : "s"}, ${chunks.length} chunks)`;
+
+    renderDocs(details, docs, new Set(data.sources || []), data.refused, within);
+    renderChunking(details.querySelector(".chunking-desc"), details.querySelector(".chunking-facts"), data);
+
+    details.querySelector(".chunks-title").textContent =
       `Retrieved chunks (${chunks.length}${data.top_k ? ` · top-${data.top_k}` : ""})` +
       (data.refused ? " — none close enough to answer from" : "");
     const list = details.querySelector(".chunk-list");
@@ -672,7 +690,7 @@
       const dist = document.createElement("span");
       dist.className = "chunk-dist";
       const d = Number(c.distance);
-      dist.dataset.within = String(Number.isFinite(cutoff) ? d < cutoff : true);
+      dist.dataset.within = String(within(d));
       dist.textContent = `distance ${Number.isFinite(d) ? d.toFixed(3) : "?"}`;
       head.append(label, dist);
 
@@ -689,6 +707,58 @@
 
       li.append(head, bar, text);
       list.append(li);
+    }
+  }
+
+  function renderDocs(details, docs, cited, refused, within) {
+    details.querySelector(".docs-title").textContent =
+      refused ? "Closest documents (none close enough)" : "Source documents";
+    const list = details.querySelector(".doc-list");
+    list.replaceChildren();
+    for (const [name, doc] of docs) {
+      const li = document.createElement("li");
+      li.className = "doc";
+      const file = document.createElement("span");
+      file.className = "doc-name";
+      file.textContent = name;
+      const meta = document.createElement("span");
+      meta.className = "doc-meta";
+      meta.dataset.within = String(within(doc.best));
+      const role = refused ? "" : cited.has(name) ? " · used for the answer" : "";
+      meta.textContent =
+        `${doc.count} chunk${doc.count === 1 ? "" : "s"} · closest ${doc.best.toFixed(3)}${role}`;
+      li.append(file, meta);
+      list.append(li);
+    }
+  }
+
+  function renderChunking(desc, facts, data) {
+    const c = data.chunking;
+    facts.replaceChildren();
+    if (!c) {
+      desc.textContent = "Not reported by this backend. Update serve.py to see the strategy here.";
+      return;
+    }
+    desc.replaceChildren();
+    const name = document.createElement("strong");
+    name.textContent = c.strategy;
+    desc.append(name, document.createTextNode(c.description ? ` — ${c.description}` : ""));
+    const rows = [
+      ["Max chars", c.max_chars],
+      ["Min chars", c.min_chars],
+      ["Overlap", c.overlap],
+      ["Top-k", c.top_k],
+      ["Produced by", c.produced_by],
+    ];
+    for (const [k, v] of rows) {
+      if (v === undefined || v === null || v === "") continue;
+      const wrap = document.createElement("div");
+      const dt = document.createElement("dt");
+      dt.textContent = k;
+      const dd = document.createElement("dd");
+      dd.textContent = String(v);
+      wrap.append(dt, dd);
+      facts.append(wrap);
     }
   }
 

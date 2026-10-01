@@ -112,6 +112,10 @@ def export_corpus(name: str, out_dir: Path) -> dict:
         sys.exit(f"{name}: no chunks — is corpora/{name}/documents empty?")
 
     _check_prompt_template(chunks)
+    chunking = corpus_info.chunking(name)
+    made_by = {c.produced_by for c in chunks}
+    if made_by != {chunking["produced_by"]}:
+        sys.exit(f"{name}: chunks came from {made_by}, not {chunking['produced_by']}.")
     packed, dim = _pack(store.embed([c.text for c in chunks]))
 
     payload = {
@@ -119,6 +123,7 @@ def export_corpus(name: str, out_dir: Path) -> dict:
         "model": config.EMBEDDING_MODEL,
         "strategy": settings["strategy"],
         "top_k": settings["top_k"],
+        "chunking": chunking,
         "dim": dim,
         "chunks": [
             {"label": c.label, "source": c.source, "text": c.text, "v": v}

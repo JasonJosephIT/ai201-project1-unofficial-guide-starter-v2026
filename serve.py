@@ -140,6 +140,7 @@ def ask():
     `"refused": true` so whatever calls this can tell the two apart.
     """
     from app import ask_pipeline
+    from corpus_info import chunking
 
     payload = request.get_json(silent=True) or {}
     question = (payload.get("question") or "").strip()
@@ -174,6 +175,8 @@ def ask():
             "threshold": outcome["threshold"],
             "corpus": corpus,
             "top_k": outcome["top_k"],
+            # How this corpus was chunked, so the page can show it with the chunks.
+            "chunking": chunking(corpus),
             "chunks": [
                 {**chunk, "distance": round(chunk["distance"], 4)}
                 for chunk in outcome["chunks"]

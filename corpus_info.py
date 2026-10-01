@@ -49,3 +49,34 @@ def list_corpora() -> list[tuple[str, str]]:
         blurb = BLURBS.get(path.name, "Your own corpus.")
         found.append((path.name, f"{blurb} ({count} documents)"))
     return found
+
+
+# What each chunking strategy in config.CORPUS_SETTINGS does, in one line.
+STRATEGIES = {
+    "paragraphs": "One chunk per paragraph, headed by the post's title. Short "
+                  "paragraphs are glued to a neighbour; a plain-text heading "
+                  "starts a new chunk.",
+    "replies": "One chunk per thread reply, headed by the thread's question and "
+               "the reply's vote line.",
+    "sections": "One chunk per `##` section, headed by \"<guide> — <section>\".",
+    "fixed": "Fixed-size character windows with overlap (the starter's original).",
+}
+
+
+def chunking(name: str | None = None) -> dict:
+    """How a corpus is chunked and retrieved, for showing next to an answer.
+
+    `serve.py` returns this with every /ask, and tools/export_static_index.py
+    writes it into the static site's index, so both modes describe the chunks
+    with the same words and the same numbers as config.py.
+    """
+    settings = config.chunk_settings(name)
+    strategy = settings["strategy"]
+    return {
+        **settings,
+        "description": STRATEGIES.get(strategy, ""),
+        "produced_by": (
+            "chunker.py::fallback_split" if strategy == "fixed"
+            else "chunker.py::split_documents"
+        ),
+    }

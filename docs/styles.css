@@ -244,8 +244,21 @@ input, textarea {
 .sources-label { font-size: 0.82rem; color: var(--muted); margin-right: 2px; }
 .source { font-family: var(--mono); font-size: 0.78rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px; overflow-wrap: anywhere; }
 
-.chunks summary { cursor: pointer; font-size: 0.88rem; font-weight: 600; color: var(--accent); }
-.chunk-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 10px; }
+.details summary { cursor: pointer; font-size: 0.88rem; font-weight: 600; color: var(--accent); }
+.detail { margin-top: 14px; min-width: 0; }
+.detail-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.doc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.doc { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; background: var(--bg); }
+.doc-name { font-family: var(--mono); font-size: 0.8rem; overflow-wrap: anywhere; }
+.doc-meta { font-family: var(--mono); font-size: 0.76rem; }
+.doc-meta[data-within="true"] { color: var(--pass); }
+.doc-meta[data-within="false"] { color: var(--refuse); }
+.chunking-desc { margin: 0 0 8px; font-size: 0.88rem; }
+.chunking-facts { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.chunking-facts div { border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; background: var(--bg); font-size: 0.78rem; display: flex; gap: 6px; }
+.chunking-facts dt { color: var(--muted); }
+.chunking-facts dd { margin: 0; font-family: var(--mono); overflow-wrap: anywhere; }
+.chunk-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .chunk { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--bg); min-width: 0; }
 .chunk-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 6px; }
 .chunk-label { font-family: var(--mono); font-size: 0.78rem; overflow-wrap: anywhere; }
