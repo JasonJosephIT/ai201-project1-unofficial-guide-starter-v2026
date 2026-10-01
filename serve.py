@@ -17,12 +17,6 @@ Two routes:
                     sources and the retrieved chunks out (corpus is optional)
     GET  /health    is the service up, and which corpora have an index
 
-The web page in docs/ (served by GitHub Pages) calls these two routes from the
-browser. A page on another origin may only read the replies if this service
-says so, which is what the CORS headers below are for. Set
-AI201_ALLOWED_ORIGINS to a comma-separated list to change who may call it;
-the default is your own machine and any *.github.io page.
-
 Why this exists: `app.py` runs once and exits, which is fine on your laptop
 and impossible to deploy. A hosted service has to stay up and wait for
 requests. This is the smallest thing that does that.
@@ -34,7 +28,6 @@ Shipping a logger here would hand you the answer to that. Add yours in unit 9;
 this file stays the bare shell until then.
 """
 
-import fnmatch
 import os
 
 from flask import Flask, jsonify, request
@@ -42,46 +35,6 @@ from flask import Flask, jsonify, request
 import config
 
 app = Flask(__name__)
-
-ALLOWED_ORIGINS = [
-    o.strip()
-    for o in os.getenv(
-        "AI201_ALLOWED_ORIGINS",
-        "http://localhost:*,http://127.0.0.1:*,https://*.github.io",
-    ).split(",")
-    if o.strip()
-]
-
-
-def _origin_allowed(origin: str) -> bool:
-    return any(
-        fnmatch.fnmatch(origin, pattern) or origin == pattern.replace(":*", "")
-        for pattern in ALLOWED_ORIGINS
-    )
-
-
-@app.after_request
-def cors(response):
-    """Let the GitHub Pages front end (a different origin) read the replies."""
-    origin = request.headers.get("Origin", "")
-    if origin and _origin_allowed(origin):
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Vary"] = "Origin"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-        # Chrome asks this extra question before a public https page may call a
-        # server on your own machine (http://localhost). Without it, the page
-        # on github.io can't reach `python serve.py` running on your laptop.
-        if request.headers.get("Access-Control-Request-Private-Network") == "true":
-            response.headers["Access-Control-Allow-Private-Network"] = "true"
-    return response
-
-
-@app.route("/ask", methods=["OPTIONS"])
-@app.route("/health", methods=["OPTIONS"])
-def preflight():
-    return ("", 204)
-
 
 def _corpus_names() -> list[str]:
     from corpus_info import list_corpora
@@ -114,9 +67,8 @@ def health():
                 else "no index for this corpus — run `python app.py index`"
             ),
             "threshold": config.THRESHOLD,
-            # Every corpus on disk, so a front end can offer a choice. Only the
-            # ones with an index can answer; the rest need
-            # `python app.py --corpus NAME index` first.
+            # Every corpus on disk. Only the ones with an index can answer;
+            # the rest need `python app.py --corpus NAME index` first.
             "corpora": [
                 {
                     "name": name,
