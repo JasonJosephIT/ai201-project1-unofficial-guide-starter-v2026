@@ -2,13 +2,6 @@
 
 <!-- Replace this line with your name and which corpus you picked. -->
 
-**Try it online:** <https://jasonjosephit.github.io/ai201-project1-unofficial-guide-starter-v2026/>
-
-The page runs in two modes. **Static** (the default on GitHub Pages) searches an
-index that GitHub Actions builds from this repo, in your browser, and answers with
-Gemini only if you paste in your own key; without one you get the closest passages.
-**Backend** (`?api=http://localhost:5000`) sends every question to `python serve.py`.
-
 > **This file is your submission.** Fill it in as you go — most sections get
 > written during the milestone that produces them, not at the end.
 >
@@ -59,9 +52,6 @@ Gemini only if you paste in your own key; without one you get the closest passag
      across.
 
      Milestone 3. -->
-
-Chunks come from `chunker.py::split_documents`, which picks a strategy per corpus
-from `config.CORPUS_SETTINGS`. The static site's index is built from the same function.
 
 **Chunk 1** — source: `` — produced by: ``
 

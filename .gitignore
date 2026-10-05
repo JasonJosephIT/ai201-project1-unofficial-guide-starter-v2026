@@ -19,13 +19,6 @@ chroma/
 # Cached model responses
 .cache/
 
-# Static-site index — built by tools/export_static_index.py, and by GitHub
-# Actions on every deploy (.github/workflows/pages.yml)
-docs/data/
-
-# Node side of the static-site parity check (npm install --prefix tools)
-node_modules/
-
 # OS noise
 .DS_Store
 Thumbs.db

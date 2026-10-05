@@ -5,6 +5,8 @@ The Unofficial Guide — command line.
     python app.py index                  build the search index (do this first)
     python app.py ask "your question"    ask one question
     python app.py ask                    ask questions until you quit
+    python app.py chat                   ask questions and review chunking,
+                                         with sources and chunks shown
     python app.py chunks                 print sample chunks      (Milestone 3)
     python app.py retrieve "question"    show distances, no answer (Milestone 4)
     python app.py corpora                list the available corpora
@@ -333,6 +335,12 @@ def cmd_ask(args):
         print(gen.usage())
 
 
+def cmd_chat(args):
+    import chat
+
+    chat.run(args.corpus or config.CORPUS, args.variant)
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="app.py",
@@ -387,6 +395,12 @@ def build_parser():
         help="print the assembled prompt before the answer",
     )
     p_ask.set_defaults(func=cmd_ask)
+
+    p_chat = sub.add_parser(
+        "chat",
+        help="interactive: ask questions, see sources, chunking and chunks",
+    )
+    p_chat.set_defaults(func=cmd_chat)
 
     return parser
 
