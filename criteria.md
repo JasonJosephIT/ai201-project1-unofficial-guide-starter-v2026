@@ -23,8 +23,13 @@ For at least 4 of my 5 test questions, the retrieved chunks include one that
 contains the answer.
 
 **Why this target:**
-<!-- e.g. "One of my questions is about a topic only two documents mention, so
-     I expect that one to be hard." -->
+Four of my questions each have one post that states the answer in a single
+sentence. The fifth, "Which courses drop your lowest midterm?", has its answer
+split across two course posts (STAT 150 and PHYS 130). It also shares the
+word "drop" with admin posts about the add/drop deadline and the pass/fail
+option. Those posts compete for the five retrieval slots, and when I checked,
+they pushed PHYS 130 out of the top five. I expect four of five, with the
+midterm question as the likely miss.
 
 ---
 
@@ -33,8 +38,12 @@ contains the answer.
 Every answer the system produces names at least one source document.
 
 **Why this target:**
-<!-- Why all five and not four? What about your setup makes that achievable —
-     or what would have to go wrong for it not to be? -->
+The pipeline asks for a citation twice. `generate.build_prompt` labels every
+chunk `[from <filename>]`, and `GROUNDING_INSTRUCTION` tells the model to name
+the file it used. Refused questions never reach the model. I count only the
+model's own answer text here, not the "Sources retrieved" line that `app.py`
+prints, so a miss means Gemini ignored a direct instruction. All five is the
+right bar for that.
 
 ---
 
@@ -50,8 +59,13 @@ in at least 4 of 5 tries.
      just keep five of them, or the "4 of 5" above has nothing to be 4 of. -->
 
 **Why this target:**
-<!-- What did your distances look like when you set the cutoff in Milestone 4?
-     Was there a clean gap, or did the two groups overlap? -->
+When I set the cutoff, my five in-corpus questions scored 0.170 to 0.510 and
+the five out-of-scope questions scored 0.825 to 0.923. That is a clean gap
+with 0.6 inside it, and all five out-of-scope questions were refused. I kept
+the target at four of five because the gap narrows for questions that borrow
+a campus name. "How do I get from Kestrelford to Halden Bay by train?" asks
+about something the corpus doesn't cover, yet it scored 0.594 against the
+Kestrel Commons post and got through.
 
 ---
 
@@ -69,11 +83,18 @@ in at least 4 of 5 tries.
        - "No chunk is shorter than 200 characters, since anything below that
           in my corpus turned out to be a heading with no content under it." -->
 
-
+Every `campus_life` chunk starts with its post's title, and no chunk is shorter
+than 100 characters. Checked by running `chunker.split_documents` over the
+corpus and counting.
 
 **Why this target:**
-
-
+Many `campus_life` paragraphs never name their subject. "One midterm and a
+final, both open-book" could describe any course until the title "CS 340
+Databases — assessment" sits above it. A chunk without its title can be
+retrieved for the wrong course and cited for the wrong one. The corpus also
+has short lines, such as post titles and one-sentence asides, that carry
+nothing to answer from on their own. A chunk under 100 characters means the
+80-character join rule let one through.
 
 ---
 
@@ -87,11 +108,17 @@ in at least 4 of 5 tries.
      present — anything, as long as it names a number or an observable
      outcome. -->
 
-
+For at least 4 of my 5 test questions, a file that the answer names contains
+the answer: the `expects` phrase from `questions.py` appears in that file.
 
 **Why this target:**
-
-
+Criterion 2 only checks that a filename appears. The prompt carries all five
+retrieved chunks, including neighbours from other posts. The Halden Hall
+answer had `dining_pellew_dining_hall.txt` in its prompt alongside the two
+Halden Hall posts, so the model could cite a file that is present but wrong.
+I want the cited file to be the right one. I expect four of five because the
+midterm answer lives in two files, and the model may cite a course post that
+mentions midterms without dropping one.
 
 ---
 

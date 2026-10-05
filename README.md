@@ -27,6 +27,15 @@
 
      Milestone 5. -->
 
+The Unofficial Guide answers questions about student life at a university
+from `campus_life`, 88 short posts written by students. The posts cover
+courses, housing, admin deadlines, dining halls, money, the health centre and
+getting around campus. You can ask "What time does Halden Hall close?" or "Is
+the housing lottery random?". The system pulls the closest paragraphs, has
+Gemini answer from those alone, and names the files it used. A question the
+posts don't cover, such as "What is the capital of Mongolia?", gets "I don't
+have enough information about that." instead of a guess.
+
 ## Chunking Strategy
 
 **Chunk size:** one paragraph per chunk, at most 450 characters. The chunker glues any paragraph under 80 characters to a neighbour (`campus_life` in `config.CORPUS_SETTINGS`).
@@ -223,9 +232,27 @@ cutoff, so the gate lets it through.
 
      Milestone 5. -->
 
-**1.**
+**1.** I asked Claude Code to host the system on GitHub Pages, so anyone
+could ask it questions without my laptop running `serve.py`. It built a
+static site. A GitHub Actions job ran my Python pipeline and exported every
+chunk and its vector to JSON. The browser embedded each question with the same
+MiniLM model, and a parity script showed that browser distances matched
+`store.search` exactly. What I changed: the live URL kept showing this README,
+because Pages was still set to deploy from a branch, and a website was more
+than I needed to test retrieval. I had it roll back all the web work while
+keeping my per-corpus chunking, and build `python app.py chat` instead. That
+command shows each answer with its source documents, chunking strategy and
+retrieved chunks, and has commands for reviewing how each document was cut.
 
-**2.**
+**2.** I asked Claude Code to fill in the Chunking Strategy section above. It
+measured the change instead of describing it: the starter's 800/120 windows
+gave one chunk per post, and paragraph chunks moved the Halden Hall question
+from 0.261 to 0.210 while the single-paragraph posts stayed the same. Its
+first draft read like generated text, full of hedging adverbs and one
+"a safety cap, not a target" contrast. What I changed: I had it rewrite the
+section under stop-slop rules, with active voice, no hedges and the same
+numbers. The rewrite also corrected a claim that short paragraphs merge into
+"the next one", since the code joins them to whichever neighbour fits.
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
