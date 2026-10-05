@@ -29,8 +29,65 @@
 
 ## Chunking Strategy
 
-**Chunk size:**
-**Overlap:**
+**Chunk size:** one paragraph per chunk, capped at 450 characters, with paragraphs under 80 characters glued to a neighbour (`campus_life` in `config.CORPUS_SETTINGS`)
+**Overlap:** 0
+
+`campus_life` is 88 short student posts, one to three paragraphs each (307
+characters on average, 526 at most). The useful fact in a post usually sits in
+a single sentence, and the overview posts put each topic in its own paragraph:
+`dining_halden_hall_followup.txt` has one paragraph on wait times and another
+that says the hall closes at 7:00pm.
+
+The starter's chunker cut fixed 800-character windows with 120 characters of
+overlap. No post is longer than 800 characters, so it made exactly 88 chunks,
+one per post, and the overlap never came into play. A post that covered two
+topics became one vector that matched neither topic well.
+
+`chunker.py::split_documents` now cuts `campus_life` by paragraph instead:
+
+- **One paragraph per chunk**, so each topic gets its own vector. This gives
+  150 chunks, averaging 191 characters (median 180, shortest 102, longest 396).
+  33 posts are short enough to stay a single chunk.
+- **The post's title starts every chunk** (for example `Laundry in Morrow House`
+  or `CS 340 Databases — assessment`). A paragraph like "One midterm and a final,
+  both open-book" then still says which course it is about when it is
+  retrieved on its own.
+- **Paragraphs under 80 characters are joined to a neighbour**, and a short
+  heading line always stays with the text under it. Without this, a one-line
+  paragraph would become a chunk with almost nothing to match on.
+- **450 characters is a safety cap, not a target.** The longest paragraph in
+  the corpus is 373 characters, so the cap never cuts anything here. If a
+  longer post is added, it is split at sentence boundaries, never
+  mid-sentence.
+- **Overlap is 0**, because no paragraph gets cut. Overlap only matters when a
+  unit is split, and here it would just repeat text between unrelated
+  paragraphs.
+
+At ingestion, `ingest.clean_text` also strips self-introduction sentences such
+as "Second-year here." (`STRIP_AUTHOR_FRAMING` in `config.py`). They carry no
+facts and would pull every chunk that contains one towards the same
+meaningless match.
+
+**What changed, measured.** Best distance with the starter's chunks compared
+with the paragraph chunks (lower is closer):
+
+| Question | Starter (800/120) | Paragraphs |
+|---|---|---|
+| What time does Halden Hall close? | 0.261 (`dining_halden_hall.txt#0`) | 0.210 (`dining_halden_hall_followup.txt#1`) |
+| Is the housing lottery random? | 0.254 | 0.254 |
+| How much does an official transcript cost? | 0.185 | 0.185 |
+| What is the capital of Mongolia? (out of scope) | 0.825 | 0.825 |
+
+The gain appears only where a post mixes topics. The Halden Hall closing time
+now has a chunk to itself. Single-paragraph posts score the same because they
+were already one chunk, and the out-of-scope question is just as far away as
+before, so the relevance gate is unaffected.
+
+The other corpora are cut to their own shape: `advice_threads` gets one chunk
+per reply, headed by the thread's question (75 chunks, top-6), and
+`city_guides` gets one chunk per `##` section, headed by guide and section name.
+`city_guides` sections can run long, so they are capped at 600 characters with
+150 characters of overlap (96 chunks, top-4).
 
 <!-- What about YOUR documents made you pick these numbers? Short posts and
      long sectioned guides don't want the same chunking, and "800 seemed
@@ -53,29 +110,42 @@
 
      Milestone 3. -->
 
-**Chunk 1** — source: `` — produced by: ``
+From `python app.py --corpus campus_life chunks -n 5`: 150 chunks in total, five
+taken at even spacing across the corpus.
+
+**Chunk 1** — source: `admin_add_drop_deadline.txt#0` — produced by: `chunker.py::split_documents`
 
 ```
+On the add/drop deadline
+You can add a course through the end of the second week. Dropping is a longer window — through the end of week six — but a drop after week two shows as a W on your transcript. Nothing anywhere on the registrar's site says this plainly, and students find out from each other.
 ```
 
-**Chunk 2** — source: `` — produced by: ``
+**Chunk 2** — source: `course_cs_340_exams.txt#0` — produced by: `chunker.py::split_documents`
 
 ```
+CS 340 Databases — assessment
+One midterm and a final, both open-book. Lightly curved, usually two or three points.
 ```
 
-**Chunk 3** — source: `` — produced by: ``
+**Chunk 3** — source: `course_stat_150.txt#1` — produced by: `chunker.py::split_documents`
 
 ```
+STAT 150 Applied Statistics
+The one piece of advice: the dropped midterm makes the first one low-stakes; use it to learn the format.
 ```
 
-**Chunk 4** — source: `` — produced by: ``
+**Chunk 4** — source: `health_center.txt#0` — produced by: `chunker.py::split_documents`
 
 ```
+The health centre
+Walk-in hours are 8am to 11am; everything after that is by appointment and appointments run about a week out. If something is urgent, go at 8am and wait rather than booking.
 ```
 
-**Chunk 5** — source: `` — produced by: ``
+**Chunk 5** — source: `housing_morrow_house_laundry.txt#1` — produced by: `chunker.py::split_documents`
 
 ```
+Laundry in Morrow House
+Best time to do laundry here is Tuesday or Wednesday morning. Sunday after 6pm you will wait.
 ```
 
 ## Sample Answer
