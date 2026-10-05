@@ -157,11 +157,16 @@ Best time to do laundry here is Tuesday or Wednesday morning. Sunday after 6pm y
 
 **Answer:**
 
-<!-- Paste the real output of:
-       python app.py --corpus campus_life ask "What time does Halden Hall close?"
-     including the "(best distance ...)" line and the "Sources retrieved:" line. -->
+From `python app.py --corpus campus_life ask "What time does Halden Hall close?"`:
 
 ```
+  (best distance 0.210, cutoff 0.6)
+
+Halden Hall closes at 7:00pm.
+
+Sources: `dining_halden_hall.txt` and `dining_halden_hall_followup.txt`
+
+Sources retrieved: dining_halden_hall.txt, dining_halden_hall_followup.txt, dining_pellew_dining_hall.txt
 ```
 
 **My relevance cutoff:** 0.6 (`THRESHOLD` in `config.py`)
