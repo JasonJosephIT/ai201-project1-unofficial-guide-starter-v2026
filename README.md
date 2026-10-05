@@ -153,14 +153,37 @@ Best time to do laundry here is Tuesday or Wednesday morning. Sunday after 6pm y
 <!-- One complete question and answer, pasted as text, with the source line
      visible. Milestone 4. -->
 
-**Question:**
+**Question:** What time does Halden Hall close?
 
 **Answer:**
 
+<!-- Paste the real output of:
+       python app.py --corpus campus_life ask "What time does Halden Hall close?"
+     including the "(best distance ...)" line and the "Sources retrieved:" line. -->
+
 ```
 ```
 
-**My relevance cutoff:**
+**My relevance cutoff:** 0.6 (`THRESHOLD` in `config.py`)
+
+The five questions the corpus covers came back with best distances between
+0.170 and 0.510. The five questions from `OUT_OF_SCOPE` came back between 0.825
+and 0.923. That leaves a gap from 0.510 to 0.825, and 0.6 sits inside it, so
+the gate answers all five in-corpus questions and refuses all five
+out-of-scope ones.
+
+The cutoff sits nearer the in-corpus group on purpose. The weakest in-corpus
+match, "Which courses drop your lowest midterm?" at 0.510, has its answer
+spread over two documents (STAT 150 and PHYS 130), and a cutoff tighter than
+0.51 would refuse it. The out-of-scope questions sit 0.225 above the cutoff at
+their closest.
+
+One question shows the cutoff's weak spot. "How do I get from Kestrelford to
+Halden Bay by train?" asks about an intercity train, and the corpus's transit
+posts cover only walking times and the campus shuttle. Its closest chunk is
+the Kestrel Commons dining post (`dining_kestrel_commons.txt#1`), which shares
+the word "Kestrel" and nothing useful. It scores 0.594, 0.006 under the
+cutoff, so the gate lets it through.
 
 <!-- The number you set in config.py, and how you got there.
 
@@ -173,7 +196,16 @@ Best time to do laundry here is Tuesday or Wednesday morning. Sunday after 6pm y
 
 | Question | In corpus? | Best distance |
 |---|---|---|
-|  |  |  |
+| How much does an official transcript cost? | Yes | 0.185 (`admin_transcript_requests.txt#0`) |
+| What time does Halden Hall close? | Yes | 0.210 (`dining_halden_hall_followup.txt#1`) |
+| Which courses drop your lowest midterm? | Yes | 0.510 (`course_stat_150.txt#1`) |
+| Is the housing lottery random? | Yes | 0.254 (`admin_housing_lottery.txt#0`) |
+| What are the health centre's walk-in hours? | Yes | 0.170 (`health_center.txt#0`) |
+| What is the capital of Mongolia? | No | 0.825 |
+| How do I change the oil in a diesel engine? | No | 0.923 |
+| Who won the 1994 World Cup? | No | 0.886 |
+| What is the recommended dosage of ibuprofen for a headache? | No | 0.839 |
+| How do I write a for loop in Rust? | No | 0.864 |
 
 ## How I Used AI
 
