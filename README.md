@@ -29,47 +29,46 @@
 
 ## Chunking Strategy
 
-**Chunk size:** one paragraph per chunk, capped at 450 characters, with paragraphs under 80 characters glued to a neighbour (`campus_life` in `config.CORPUS_SETTINGS`)
+**Chunk size:** one paragraph per chunk, at most 450 characters. The chunker glues any paragraph under 80 characters to a neighbour (`campus_life` in `config.CORPUS_SETTINGS`).
 **Overlap:** 0
 
-`campus_life` is 88 short student posts, one to three paragraphs each (307
-characters on average, 526 at most). The useful fact in a post usually sits in
-a single sentence, and the overview posts put each topic in its own paragraph:
-`dining_halden_hall_followup.txt` has one paragraph on wait times and another
-that says the hall closes at 7:00pm.
+`campus_life` holds 88 short student posts of one to three paragraphs each, 307
+characters on average and 526 at most. In most posts the useful fact sits in one
+sentence, and an overview post gives each topic its own paragraph.
+`dining_halden_hall_followup.txt`, for example, spends one paragraph on wait
+times and the next on the hall closing at 7:00pm.
 
 The starter's chunker cut fixed 800-character windows with 120 characters of
-overlap. No post is longer than 800 characters, so it made exactly 88 chunks,
-one per post, and the overlap never came into play. A post that covered two
-topics became one vector that matched neither topic well.
+overlap. No `campus_life` post reaches 800 characters, so the starter made 88
+chunks, one per post, with no window boundary for the overlap to bridge. The
+Halden Hall follow-up became a single vector that mixed wait times with the
+closing time.
 
-`chunker.py::split_documents` now cuts `campus_life` by paragraph instead:
+`chunker.py::split_documents` cuts `campus_life` by paragraph:
 
-- **One paragraph per chunk**, so each topic gets its own vector. This gives
-  150 chunks, averaging 191 characters (median 180, shortest 102, longest 396).
-  33 posts are short enough to stay a single chunk.
-- **The post's title starts every chunk** (for example `Laundry in Morrow House`
-  or `CS 340 Databases — assessment`). A paragraph like "One midterm and a final,
-  both open-book" then still says which course it is about when it is
-  retrieved on its own.
-- **Paragraphs under 80 characters are joined to a neighbour**, and a short
-  heading line always stays with the text under it. Without this, a one-line
-  paragraph would become a chunk with almost nothing to match on.
-- **450 characters is a safety cap, not a target.** The longest paragraph in
-  the corpus is 373 characters, so the cap never cuts anything here. If a
-  longer post is added, it is split at sentence boundaries, never
-  mid-sentence.
-- **Overlap is 0**, because no paragraph gets cut. Overlap only matters when a
-  unit is split, and here it would just repeat text between unrelated
+- **One paragraph per chunk.** Each topic gets its own vector: 150 chunks,
+  averaging 191 characters (median 180, shortest 102, longest 396). 33 posts
+  stay as a single chunk.
+- **The post's title opens each chunk**, such as `Laundry in Morrow House` or
+  `CS 340 Databases — assessment`. When search returns "One midterm and a final,
+  both open-book" on its own, you can see which course it describes.
+- **Short paragraphs join a neighbour.** The chunker merges any paragraph under
+  80 characters into a neighbouring one and keeps a heading line with the text
+  beneath it. The shortest chunk in the corpus runs 102 characters.
+- **450 characters works as a safety cap.** The longest paragraph runs 373
+  characters, so the cap cuts nothing in this corpus. If you add a longer post,
+  the chunker splits it at sentence boundaries.
+- **Overlap stays at 0** because the chunker splits no paragraph. Overlap helps
+  when a paragraph breaks in two; here it would repeat text between unrelated
   paragraphs.
 
-At ingestion, `ingest.clean_text` also strips self-introduction sentences such
-as "Second-year here." (`STRIP_AUTHOR_FRAMING` in `config.py`). They carry no
-facts and would pull every chunk that contains one towards the same
-meaningless match.
+At ingestion, `ingest.clean_text` strips self-introduction sentences such as
+"Second-year here." (`STRIP_AUTHOR_FRAMING` in `config.py`). Those sentences
+carry no facts, and leaving them in would pull each chunk that contains one
+towards the same empty match.
 
-**What changed, measured.** Best distance with the starter's chunks compared
-with the paragraph chunks (lower is closer):
+**Before and after, measured.** Best distance for four questions, starter chunks
+against paragraph chunks (lower is closer):
 
 | Question | Starter (800/120) | Paragraphs |
 |---|---|---|
@@ -78,16 +77,17 @@ with the paragraph chunks (lower is closer):
 | How much does an official transcript cost? | 0.185 | 0.185 |
 | What is the capital of Mongolia? (out of scope) | 0.825 | 0.825 |
 
-The gain appears only where a post mixes topics. The Halden Hall closing time
-now has a chunk to itself. Single-paragraph posts score the same because they
-were already one chunk, and the out-of-scope question is just as far away as
-before, so the relevance gate is unaffected.
+Paragraph chunking improved the one question whose answer shares a post with
+another topic. Halden Hall's closing time has its own chunk, and its best
+distance dropped from 0.261 to 0.210. The housing lottery and transcript posts
+score the same, since each one formed a single chunk under both strategies. The
+Mongolia question stays at 0.825, so the relevance gate refuses it as before.
 
-The other corpora are cut to their own shape: `advice_threads` gets one chunk
-per reply, headed by the thread's question (75 chunks, top-6), and
-`city_guides` gets one chunk per `##` section, headed by guide and section name.
-`city_guides` sections can run long, so they are capped at 600 characters with
-150 characters of overlap (96 chunks, top-4).
+The other corpora get cuts that match their shape. `advice_threads` gets one
+chunk per reply, each starting with the thread's question (75 chunks, top-6).
+`city_guides` gets one chunk per `##` section, each starting with the guide and
+section name. Its sections run long, so the chunker caps them at 600 characters
+with 150 characters of overlap (96 chunks, top-4).
 
 <!-- What about YOUR documents made you pick these numbers? Short posts and
      long sectioned guides don't want the same chunking, and "800 seemed
